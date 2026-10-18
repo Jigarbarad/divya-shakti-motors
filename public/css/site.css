@@ -283,3 +283,6 @@ footer.site a:hover{color:#fff}
 @media(max-width:380px){
   .logo{font-size:.78rem;line-height:1.12;max-width:112px;white-space:normal}
 }
+
+/* the hidden attribute must win over display:grid on forms (login / register tabs) */
+form[hidden]{display:none}
