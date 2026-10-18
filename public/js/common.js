@@ -116,9 +116,10 @@
   let activePage = '';
   function chrome() {
     const t = App.t, u = App.user;
+    const PERSON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg>';
     const acct = u
-      ? `<a class="btn btn-red" href="${u.role === 'admin' ? '/admin.html' : '/dashboard.html'}">${u.role === 'admin' ? t('admin') : t('account')}</a>`
-      : `<a class="btn btn-red" href="/login.html">${t('login')}</a>`;
+      ? `<a class="btn btn-red acct" href="${u.role === 'admin' ? '/admin.html' : '/dashboard.html'}" aria-label="${u.role === 'admin' ? t('admin') : t('account')}">${PERSON}<span>${u.role === 'admin' ? t('admin') : t('account')}</span></a>`
+      : `<a class="btn btn-red acct" href="/login.html" aria-label="${t('login')}">${PERSON}<span>${t('login')}</span></a>`;
     const link = (id, href, k) => `<li><a href="${href}" class="${activePage === id ? 'on' : ''}">${t(k)}</a></li>`;
     App.$('#hdr').innerHTML = `<div class="wrap nav">
       <a href="/" class="logo">DIVYA <span>SHAKTI</span> MOTORS</a>
@@ -139,9 +140,25 @@
       <a href="https://wa.me/${SHOP.phone}" target="_blank" rel="noopener" style="background:#1fa855">WhatsApp</a>
       <a href="${SHOP.dir}" target="_blank" rel="noopener" style="background:var(--ink)">${t('directions')}</a>`;
     const nav = App.$('#nav');
-    App.$('#menuBtn').onclick = () => nav.classList.toggle('open');
-    nav.onclick = (e) => { if (e.target.tagName === 'A') nav.classList.remove('open'); };
+    App.$('#menuBtn').onclick = () => nav.classList.toggle('nav-open');
+    nav.onclick = (e) => { if (e.target.tagName === 'A') nav.classList.remove('nav-open'); };
     App.$('#langBtn').onclick = () => App.setLang(lang === 'en' ? 'gu' : 'en');
+  }
+
+  // Mobile Call / WhatsApp / Directions bar: slides away while scrolling down, comes back on scroll up or at the page bottom
+  {
+    let anchor = scrollY, hidden = false, ticking = false;
+    addEventListener('scroll', () => {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(() => {
+        const y = scrollY, atEnd = innerHeight + y >= document.documentElement.scrollHeight - 80;
+        if (y <= 160 || atEnd) { hidden = false; anchor = y; }
+        else if (hidden) { if (y < anchor - 12) { hidden = false; anchor = y; } else anchor = Math.max(anchor, y); }
+        else if (y > anchor + 24) { hidden = true; anchor = y; } else anchor = Math.min(anchor, y);
+        document.body.classList.toggle('mhide', hidden);
+        ticking = false;
+      });
+    }, { passive: true });
   }
 
   App.setLang = (l) => {
