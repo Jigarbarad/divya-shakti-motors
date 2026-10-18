@@ -120,12 +120,13 @@
     const acct = u
       ? `<a class="btn btn-red acct" href="${u.role === 'admin' ? '/admin.html' : '/dashboard.html'}" aria-label="${u.role === 'admin' ? t('admin') : t('account')}">${PERSON}<span>${u.role === 'admin' ? t('admin') : t('account')}</span></a>`
       : `<a class="btn btn-red acct" href="/login.html" aria-label="${t('login')}">${PERSON}<span>${t('login')}</span></a>`;
-    const link = (id, href, k) => `<li><a href="${href}" class="${activePage === id ? 'on' : ''}">${t(k)}</a></li>`;
+    const link = (id, href, k) => `<li><a href="${href}" data-nav="${id}" class="${activePage === id ? 'on' : ''}">${t(k)}</a></li>`;
     App.$('#hdr').innerHTML = `<div class="wrap nav">
       <a href="/" class="logo">DIVYA <span>SHAKTI</span> MOTORS</a>
       <nav id="nav"><ul>
-        ${link('home', '/', 'nav_home')}${link('bikes', '/products.html', 'nav_bikes')}${link('services', '/#services', 'nav_services')}
+        ${link('home', '/', 'nav_home')}${link('bikes', '/#bikes', 'nav_bikes')}${link('services', '/#services', 'nav_services')}
         ${link('about', '/#about', 'nav_about')}${link('contact', '/contact.html', 'nav_contact')}
+        <li class="nav-ind" aria-hidden="true"></li>
       </ul></nav>
       <div class="nav-right">
         <button class="lang" id="langBtn" aria-label="Language / ભાષા"><span data-l="en" class="${lang === 'en' ? 'on' : ''}">EN</span><span data-l="gu" class="${lang === 'gu' ? 'on' : ''}">ગુજ</span></button>
@@ -142,24 +143,41 @@
     const nav = App.$('#nav');
     App.$('#menuBtn').onclick = () => nav.classList.toggle('nav-open');
     nav.onclick = (e) => { if (e.target.tagName === 'A') nav.classList.remove('nav-open'); };
+    nav.addEventListener('mouseover', (e) => { const l = e.target.closest('a[data-nav]'); if (l) App.navInd(l); });
+    nav.addEventListener('focusin', (e) => { const l = e.target.closest('a[data-nav]'); if (l) App.navInd(l); });
+    nav.addEventListener('mouseleave', () => App.navInd());
+    nav.addEventListener('focusout', () => App.navInd());
+    App.spy();
     App.$('#langBtn').onclick = () => App.setLang(lang === 'en' ? 'gu' : 'en');
   }
 
-  // Mobile Call / WhatsApp / Directions bar: slides away while scrolling down, comes back on scroll up or at the page bottom
+  // On the home page, highlight Services / About while that section is on screen (they are anchors on the same page, so the page itself never changes)
+  App.spy = () => {
+    if (activePage !== 'home') return App.navInd();
+    const on = (id) => document.querySelectorAll('nav a[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === id));
+    const inView = (sel) => { const el = document.querySelector(sel); if (!el) return false; const r = el.getBoundingClientRect(); return r.top <= 140 && r.bottom > 140; };
+    on(inView('#bikes') ? 'bikes' : inView('#services') ? 'services' : inView('#about') ? 'about' : 'home');
+    App.navInd();
+  };
   {
-    let anchor = scrollY, hidden = false, ticking = false;
-    addEventListener('scroll', () => {
-      if (ticking) return; ticking = true;
-      requestAnimationFrame(() => {
-        const y = scrollY, atEnd = innerHeight + y >= document.documentElement.scrollHeight - 80;
-        if (y <= 160 || atEnd) { hidden = false; anchor = y; }
-        else if (hidden) { if (y < anchor - 12) { hidden = false; anchor = y; } else anchor = Math.max(anchor, y); }
-        else if (y > anchor + 24) { hidden = true; anchor = y; } else anchor = Math.min(anchor, y);
-        document.body.classList.toggle('mhide', hidden);
-        ticking = false;
-      });
-    }, { passive: true });
+    let t = false;
+    addEventListener('scroll', () => { if (t) return; t = true; requestAnimationFrame(() => { App.spy(); t = false; }); }, { passive: true });
   }
+
+  // Sliding red underline under the menu: follows the hovered link and rests under the current one
+  App.navInd = (el) => {
+    const ind = document.querySelector('.nav-ind');
+    if (!ind || innerWidth <= 820) return;
+    const a = el || document.querySelector('nav a.on');
+    if (!a) { ind.style.width = '0'; return; }
+    const u = ind.parentElement.getBoundingClientRect(), r = a.getBoundingClientRect();
+    ind.style.top = (r.bottom - u.top + 3) + 'px';
+    ind.style.width = r.width + 'px';
+    ind.style.transform = `translateX(${r.left - u.left}px)`;
+    if (!ind.classList.contains('ready')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('ready')));
+  };
+  addEventListener('resize', () => App.navInd());
+  document.fonts && document.fonts.ready.then(() => App.navInd());
 
   App.setLang = (l) => {
     lang = l;
