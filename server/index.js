@@ -1,9 +1,11 @@
+try { process.loadEnvFile(require('path').join(__dirname, '..', '.env')); } catch (e) { /* no .env file: use the real environment */ }
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const db = require('./db');
 const A = require('./auth');
+const notify = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 const SHOP_PHONE = '9924065266';
@@ -150,6 +152,8 @@ app.post('/api/enquiries', enqLimit, (req, res) => {
   const id = Number(db.prepare(`INSERT INTO enquiries (user_id,name,phone,type,product_id,preferred_date,message)
                                 VALUES (?,?,?,?,?,?,?)`)
     .run(req.user ? req.user.id : null, name, phone, type, productId, date, message || null).lastInsertRowid);
+  notify.sendEnquiryEmail({ name, phone, type, message, preferred_date: date,
+    bike: productId ? db.prepare('SELECT name FROM products WHERE id=?').get(productId).name : '' });
   res.json({ ok: true, id });
 });
 
@@ -316,4 +320,7 @@ function ensureAdmin() {
 }
 ensureAdmin();
 
-app.listen(PORT, () => console.log(`Divya Shakti Motors running at http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Divya Shakti Motors running at http://localhost:${PORT}`);
+  console.log(notify.configured() ? `Enquiry emails: on (to ${process.env.NOTIFY_TO})` : 'Enquiry emails: off (set NOTIFY_TO, SMTP_USER, SMTP_PASS in .env to turn on)');
+});

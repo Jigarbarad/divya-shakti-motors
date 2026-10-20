@@ -18,3 +18,7 @@ SQLite file: `data/dsm.db` (back this up). Uploaded bike photos: `public/uploads
 ## Deploying
 Needs Node >= 22.13 and a persistent disk for `data/` and `public/uploads/`.
 Set `NODE_ENV=production` and, behind a proxy (Render, Railway, nginx), `TRUST_PROXY=1`. Serve over HTTPS.
+
+## Enquiry emails
+
+Copy `.env.example` to `.env`, then fill in `NOTIFY_TO` (who gets the emails), `SMTP_USER` (the Gmail that sends them) and `SMTP_PASS` (a Gmail App Password, not the normal password). Restart the server, then run `npm run test-email` to check it. Without these settings the site works as before and no emails are sent.
