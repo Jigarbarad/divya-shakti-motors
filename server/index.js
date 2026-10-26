@@ -9,7 +9,9 @@ const notify = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 const SHOP_PHONE = '9924065266';
-const UPLOADS = path.join(__dirname, '..', 'public', 'uploads');
+// Photos uploaded in admin live next to the database (DATA_DIR) so they survive redeploys; the photos shipped with the code stay in public/uploads
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const UPLOADS = path.join(DATA_DIR, 'uploads');
 fs.mkdirSync(UPLOADS, { recursive: true });
 
 const app = express();
@@ -294,6 +296,7 @@ app.use('/api/admin', admin);
 app.use('/api', (req, res) => bad(res, 'Not found.', 404));
 
 /* ---------- static site ---------- */
+app.use('/uploads', express.static(UPLOADS, { maxAge: '7d', fallthrough: true }));
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], index: 'index.html' }));
 
 app.use((err, req, res, next) => {
