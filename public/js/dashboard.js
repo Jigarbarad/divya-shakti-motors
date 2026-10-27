@@ -26,8 +26,7 @@ function head() {
 async function showReq() {
   const esc = App.esc, t = App.t;
   try { reqs = await App.api('/my/enquiries'); } catch (e) { App.toast(e.message, true); }
-  const newBtn = `<div class="cta" style="margin-bottom:16px"><a class="btn btn-red btn-sm" href="/products.html">${t('browse')}</a>
-                  <a class="btn btn-line btn-sm" href="/#enquiry">${t('new_req')}</a></div>`;
+  const newBtn = `<div class="cta" style="margin-bottom:16px"><a class="btn btn-red btn-sm" href="/products.html">${t('browse')}</a></div>`;
   if (!reqs.length) { view().innerHTML = newBtn + `<p class="empty">${t('no_req')}</p>`; return; }
   view().innerHTML = newBtn + `<div class="tablewrap"><table class="t"><thead><tr>
     <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_bike')}</th><th>${t('th_visit')}</th><th>${t('th_status')}</th><th></th></tr></thead><tbody>` +

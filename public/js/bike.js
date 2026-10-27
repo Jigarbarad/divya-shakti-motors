@@ -1,6 +1,6 @@
 App.add({
-  en: { why_h: 'Why choose this bike?', test_btn: 'Book a test ride' },
-  gu: { why_h: 'આ બાઇક કેમ પસંદ કરવી?', test_btn: 'ટેસ્ટ રાઇડ બુક કરો' },
+  en: { why_h: 'Why choose this bike?' },
+  gu: { why_h: 'આ બાઇક કેમ પસંદ કરવી?' },
 });
 let bike = null;
 
@@ -27,8 +27,7 @@ function render() {
         ${best ? `<p class="best"><b>${t('best_for')}:</b> ${esc(best)}</p>` : ''}
         ${why}
         <label class="cmp" style="margin:16px 0"><input type="checkbox" data-cmp="${p.id}" ${App.cmp.includes(p.id) ? 'checked' : ''}> ${t('compare')}</label>
-        <div class="cta"><button class="btn btn-red" id="enq">${t('enq_bike')}</button>
-          <button class="btn btn-line" id="ride">${t('test_btn')}</button>
+        <div class="cta"><a class="btn btn-red" href="tel:+${App.SHOP.phone}">${t('m_call')}</a>
           <a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/${App.SHOP.phone}?text=${encodeURIComponent('Hello Divya Shakti Motors, I am interested in the ' + p.name + '.')}">WhatsApp</a></div>
       </div>
     </div>
@@ -36,12 +35,6 @@ function render() {
       ${rows ? `<div class="tablewrap"><table class="t kv"><tbody>${rows}</tbody></table></div>` : `<p class="muted">${t('no_specs')}</p>`}
       ${vars ? `<h2 style="margin-top:30px">${t('variants_h')}</h2><div class="tablewrap"><table class="t"><thead><tr><th>${t('th_variant')}</th><th>${t('th_price')}</th></tr></thead><tbody>${vars}</tbody></table></div>` : ''}
       <p class="note">${t('spec_note')}</p></div>`;
-  const openForm = (defaultType) => {
-    const m = App.modal(`<h2>${esc(p.name)}</h2><div id="mform" style="margin-top:12px"></div>`);
-    App.enquiryForm(App.$('#mform', m.el), { productId: p.id, defaultType });
-  };
-  App.$('#enq').onclick = () => openForm('general');
-  App.$('#ride').onclick = () => openForm('test_ride');
 }
 
 App.init('bikes', async () => {

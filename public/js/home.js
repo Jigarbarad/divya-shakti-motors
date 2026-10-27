@@ -2,7 +2,7 @@ App.add({
   en: {
     hero_eyebrow: "Sutrapada's Hero Showroom", hero_h1: 'Ride home your <em>dream bike</em> today.',
     hero_p: 'Hero bikes and scooters, genuine spare parts, trusted service and easy finance, all under one roof on the Veraval-Kodinar highway.',
-    book_ride: 'Enquire Now', whatsapp_us: 'WhatsApp Us', call_showroom: 'Call Showroom',
+    whatsapp_us: 'WhatsApp Us', call_showroom: 'Call Showroom',
     badge1: 'Friendly, well-behaved staff', badge2: 'Easy finance & EMI', badge3: 'Exchange your old bike', badge4: 'Open Mon-Sat, 8 am-8 pm',
     bikes_eyebrow: 'Our Bikes', bikes_h2: 'Find the right ride',
     bikes_lead: "Explore the Hero bikes and scooters in our showroom. Ask us for today's best price, offers and availability.",
@@ -17,15 +17,15 @@ App.add({
     about_eyebrow: 'About Us', about_h2: 'Your local bike showroom in Sutrapada',
     about_p1: 'Divya Shakti Motors is a Hero bike and scooter showroom serving Sutrapada and nearby villages. We believe buying a bike should be simple, honest and enjoyable, and that the relationship should continue long after delivery.',
     about_p2: 'Our customers praise our staff and facilities, and we work to earn that trust with every sale and service.',
-    visit_us: 'Visit Us', st1: 'Google rating', st2v: '6 days', st2: 'Open every week', st3v: '12 hrs', st3: 'Open daily, 8-8', st4v: '1 roof', st4: 'Sales, service, parts',
+    visit_us: 'Visit Us', st1: 'Google rating', st2v: '6 days', st2: 'Mon-Sat, Sunday closed', st3v: '12 hrs', st3: 'Open 8 am-8 pm', st4v: '1 roof', st4: 'Sales, service, parts',
     rev_eyebrow: 'Customer Reviews', rev_h2: 'What our customers say', rev_lead: 'Rated 4.1 on Google by customers like you.', rev_btn: 'Read all reviews on Google',
-    enq_eyebrow: 'Enquiry', enq_h2: "Tell us what you're looking for", enq_lead: "Send your request and we'll call you back.",
+    enq_eyebrow: 'Questions?', enq_h2: 'Just call or WhatsApp us', enq_lead: "Ask about today's price, offers, availability or a test ride. We're happy to help.",
     con_eyebrow: 'Visit Us', con_h2: 'Find the showroom', con_lead: 'Right on the highway, opposite the Mamladar Office.', contact_us: 'Contact & Directions',
   },
   gu: {
     hero_eyebrow: 'સુત્રાપાડાનો હીરો શોરૂમ', hero_h1: 'તમારી <em>સપનાની બાઇક</em> આજે જ ઘરે લઈ જાઓ.',
     hero_p: 'હીરો બાઇક અને સ્કૂટર, અસલી સ્પેરપાર્ટ્સ, ભરોસાપાત્ર સર્વિસ અને સરળ ફાઇનાન્સ, બધું વેરાવળ-કોડીનાર હાઇવે પર એક જ છત નીચે.',
-    book_ride: 'હમણાં પૂછપરછ કરો', whatsapp_us: 'વોટ્સએપ કરો', call_showroom: 'શોરૂમમાં કૉલ કરો',
+    whatsapp_us: 'વોટ્સએપ કરો', call_showroom: 'શોરૂમમાં કૉલ કરો',
     badge1: 'મિલનસાર અને વિનમ્ર સ્ટાફ', badge2: 'સરળ ફાઇનાન્સ અને EMI', badge3: 'તમારી જૂની બાઇક એક્સચેન્જ કરો', badge4: 'સોમ-શનિ સવારે 8 થી રાત્રે 8 ખુલ્લું',
     bikes_eyebrow: 'અમારી બાઇક્સ', bikes_h2: 'તમારી પસંદગીની સવારી શોધો',
     bikes_lead: 'અમારા શોરૂમમાં હીરોની બાઇક અને સ્કૂટર જુઓ. આજની શ્રેષ્ઠ કિંમત, ઑફર અને ઉપલબ્ધતા અમને પૂછો.',
@@ -40,9 +40,9 @@ App.add({
     about_eyebrow: 'અમારા વિશે', about_h2: 'સુત્રાપાડામાં તમારો પોતાનો બાઇક શોરૂમ',
     about_p1: 'દિવ્ય શક્તિ મોટર્સ સુત્રાપાડા અને આસપાસના ગામોને સેવા આપતો હીરો બાઇક અને સ્કૂટરનો શોરૂમ છે. અમે માનીએ છીએ કે બાઇક ખરીદવી સરળ, પ્રામાણિક અને આનંદદાયક હોવી જોઈએ, અને ડિલિવરી પછી પણ સંબંધ ચાલુ રહેવો જોઈએ.',
     about_p2: 'અમારા ગ્રાહકો અમારા સ્ટાફ અને સુવિધાઓની પ્રશંસા કરે છે, અને દરેક વેચાણ અને સર્વિસ સાથે અમે એ વિશ્વાસ જાળવીએ છીએ.',
-    visit_us: 'અમારી મુલાકાત લો', st1: 'Google રેટિંગ', st2v: '6 દિવસ', st2: 'દર અઠવાડિયે ખુલ્લું', st3v: '12 કલાક', st3: 'દરરોજ સવારે 8 થી રાત્રે 8', st4v: '1 છત', st4: 'સેલ્સ, સર્વિસ, પાર્ટ્સ',
+    visit_us: 'અમારી મુલાકાત લો', st1: 'Google રેટિંગ', st2v: '6 દિવસ', st2: 'સોમ-શનિ, રવિવાર બંધ', st3v: '12 કલાક', st3: 'સવારે 8 થી રાત્રે 8 ખુલ્લું', st4v: '1 છત', st4: 'સેલ્સ, સર્વિસ, પાર્ટ્સ',
     rev_eyebrow: 'ગ્રાહકોના રિવ્યૂ', rev_h2: 'અમારા ગ્રાહકો શું કહે છે', rev_lead: 'Google પર ગ્રાહકો દ્વારા 4.1 રેટિંગ.', rev_btn: 'Google પર બધા રિવ્યૂ વાંચો',
-    enq_eyebrow: 'પૂછપરછ', enq_h2: 'તમે શું શોધી રહ્યા છો તે જણાવો', enq_lead: 'તમારી વિનંતી મોકલો, અમે તમને પાછો કૉલ કરીશું.',
+    enq_eyebrow: 'પ્રશ્નો છે?', enq_h2: 'બસ કૉલ કે વોટ્સએપ કરો', enq_lead: 'આજની કિંમત, ઑફર, ઉપલબ્ધતા કે ટેસ્ટ રાઇડ વિશે પૂછો. અમે ખુશીથી મદદ કરીશું.',
     con_eyebrow: 'મુલાકાત લો', con_h2: 'શોરૂમ શોધો', con_lead: 'હાઇવે પર, મામલતદાર કચેરીની સામે.', contact_us: 'સંપર્ક અને દિશા',
   },
 });
@@ -60,7 +60,6 @@ App.init('home', async () => {
     featured = (f.length ? f : all).slice(0, 4);
   } catch (e) { /* grid just stays empty */ }
   App.bindCards(App.$('#bikeGrid'));
-  App.enquiryForm(App.$('#enqHost'));
   renderBikes();
   App.onLang(renderBikes);
 });

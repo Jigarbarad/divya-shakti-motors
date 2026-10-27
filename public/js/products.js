@@ -1,7 +1,7 @@
 App.add({
-  en: { pg_title: 'Our Bikes & Scooters', pg_sub: "Tap any bike for details, then enquire about today's price and offers.",
+  en: { pg_title: 'Our Bikes & Scooters', pg_sub: "Tap any bike for details, then call or WhatsApp us for today's price and offers.",
         all: 'All', search: 'Search bikes…', none: 'No bikes found.' },
-  gu: { pg_title: 'અમારી બાઇક્સ અને સ્કૂટર', pg_sub: 'વિગતો માટે કોઈપણ બાઇક પર ટેપ કરો, પછી આજની કિંમત અને ઑફર વિશે પૂછપરછ કરો.',
+  gu: { pg_title: 'અમારી બાઇક્સ અને સ્કૂટર', pg_sub: 'વિગતો માટે કોઈપણ બાઇક પર ટેપ કરો, પછી આજની કિંમત અને ઑફર માટે કૉલ કે વોટ્સએપ કરો.',
         all: 'બધી', search: 'બાઇક શોધો…', none: 'કોઈ બાઇક મળી નથી.' },
 });
 
