@@ -16,26 +16,14 @@
 <main>
 <section class="soft" style="min-height:70vh">
   <div class="wrap authbox">
-    <h2 style="text-align:center" data-i18n="welcome">Welcome</h2>
-    <p class="lead" style="text-align:center;margin-inline:auto" data-i18n="sub">Log in to track your requests and save your favourite bikes.</p>
+    <h2 style="text-align:center">Owner login</h2>
+    <p class="lead" style="text-align:center;margin-inline:auto">For the showroom owner only.</p>
     <div class="formcard">
-      <div class="tabs">
-        <button class="tab on" data-tab="login" data-i18n="t_login">Login</button>
-        <button class="tab" data-tab="register" data-i18n="t_register">Create account</button>
-      </div>
       <form id="loginForm" novalidate>
         <div class="err" hidden></div>
-        <label class="f"><span data-i18n="f_phone"></span><input name="phone" type="tel" inputmode="numeric" autocomplete="username" required></label>
-        <label class="f"><span data-i18n="f_pass">Password</span><input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="btn btn-red" type="submit" data-i18n="t_login">Login</button>
-      </form>
-      <form id="regForm" novalidate hidden>
-        <div class="err" hidden></div>
-        <label class="f"><span data-i18n="f_name"></span><input name="name" maxlength="80" autocomplete="name" required></label>
-        <label class="f"><span data-i18n="f_phone"></span><input name="phone" type="tel" inputmode="numeric" autocomplete="username" required></label>
-        <label class="f"><span data-i18n="f_email">Email (optional)</span><input name="email" type="email" autocomplete="email"></label>
-        <label class="f"><span data-i18n="f_pass_new">Password (min 8 characters)</span><input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
-        <button class="btn btn-red" type="submit" data-i18n="t_register">Create account</button>
+        <label class="f"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="username" required></label>
+        <label class="f"><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn-red" type="submit">Login</button>
       </form>
     </div>
   </div>

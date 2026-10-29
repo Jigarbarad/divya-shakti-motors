@@ -5,8 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node --no-warnings server/index.js",
-    "dev": "node --no-warnings --watch server/index.js",
-    "test-email": "node --no-warnings server/test-email.js"
+    "dev": "node --no-warnings --watch server/index.js"
   },
   "engines": {
     "node": ">=22.13"
@@ -14,7 +13,6 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "express": "^4.22.3",
-    "nodemailer": "^10.1.7"
+    "express": "^4.22.3"
   }
 }

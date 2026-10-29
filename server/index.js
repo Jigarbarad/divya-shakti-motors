@@ -5,7 +5,6 @@ const fs = require('fs');
 const crypto = require('crypto');
 const db = require('./db');
 const A = require('./auth');
-const notify = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 const SHOP_PHONE = '9924065266';
@@ -26,7 +25,6 @@ const normPhone = (p) => {
   if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
   return /^[6-9]\d{9}$/.test(d) ? d : null;
 };
-const validEmail = (e) => !e || /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(e);
 const bad = (res, msg, code = 400) => res.status(code).json({ error: msg });
 
 function limiter(max, windowMs) {
@@ -40,7 +38,6 @@ function limiter(max, windowMs) {
   };
 }
 const authLimit = limiter(10, 15 * 60e3);
-const enqLimit = limiter(10, 60 * 60e3);
 
 /* ---------- security headers ---------- */
 app.use((req, res, next) => {
@@ -82,25 +79,9 @@ app.use(express.json({ limit: '100kb' }));
 /* ---------- auth ---------- */
 const publicUser = (u) => ({ id: u.id, name: u.name, phone: u.phone, email: u.email, role: u.role });
 
-app.post('/api/auth/register', authLimit, (req, res) => {
-  const name = str(req.body.name, 80), email = str(req.body.email, 120).toLowerCase();
-  const phone = normPhone(req.body.phone), pw = String(req.body.password || '');
-  if (name.length < 2) return bad(res, 'Please enter your name.');
-  if (!phone) return bad(res, 'Please enter a valid 10-digit mobile number.');
-  if (!validEmail(email)) return bad(res, 'Please enter a valid email or leave it blank.');
-  if (pw.length < 8 || pw.length > 100) return bad(res, 'Password must be at least 8 characters.');
-  if (db.prepare('SELECT 1 FROM users WHERE phone=?').get(phone)) return bad(res, 'This number is already registered. Please log in.', 409);
-  const id = Number(db.prepare('INSERT INTO users (name,phone,email,pass) VALUES (?,?,?,?)')
-    .run(name, phone, email || null, A.hashPassword(pw)).lastInsertRowid);
-  // Link earlier enquiries made with this number
-  db.prepare('UPDATE enquiries SET user_id=? WHERE phone=? AND user_id IS NULL').run(id, phone);
-  A.startSession(req, res, id);
-  res.json({ user: publicUser({ id, name, phone, email: email || null, role: 'user' }) });
-});
-
 app.post('/api/auth/login', authLimit, (req, res) => {
   const phone = normPhone(req.body.phone), pw = String(req.body.password || '');
-  const u = phone && db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
+  const u = phone && db.prepare("SELECT * FROM users WHERE phone=? AND role='admin'").get(phone); // only the owner can log in
   const ok = A.verifyPassword(pw.slice(0, 100), u ? u.pass : A.DUMMY);
   if (!u || !ok) return bad(res, 'Incorrect mobile number or password.', 401);
   A.startSession(req, res, u.id);
@@ -109,14 +90,6 @@ app.post('/api/auth/login', authLimit, (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => { A.endSession(req, res); res.json({ ok: true }); });
 app.get('/api/me', (req, res) => res.json({ user: req.user }));
-
-app.patch('/api/me', A.requireAuth, (req, res) => {
-  const name = str(req.body.name, 80), email = str(req.body.email, 120).toLowerCase();
-  if (name.length < 2) return bad(res, 'Please enter your name.');
-  if (!validEmail(email)) return bad(res, 'Please enter a valid email or leave it blank.');
-  db.prepare('UPDATE users SET name=?, email=? WHERE id=?').run(name, email || null, req.user.id);
-  res.json({ user: { ...req.user, name, email: email || null } });
-});
 
 app.post('/api/me/password', A.requireAuth, authLimit, (req, res) => {
   const cur = String(req.body.current || ''), next = String(req.body.next || '');
@@ -127,7 +100,7 @@ app.post('/api/me/password', A.requireAuth, authLimit, (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------- public: products + enquiries ---------- */
+/* ---------- public: products ---------- */
 const PUBLIC_COLS = 'id,name,category,tagline_en,tagline_gu,desc_en,desc_gu,price,engine,image,featured,specs,variants,highlights';
 const jparse = (s) => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
 const withJson = (p) => ({ ...p, specs: jparse(p.specs) || {}, variants: jparse(p.variants) || [], highlights: jparse(p.highlights) || { en: [], gu: [] } });
@@ -135,75 +108,9 @@ app.get('/api/products', (req, res) => {
   res.json(db.prepare(`SELECT ${PUBLIC_COLS} FROM products WHERE active=1 ORDER BY sort,id`).all().map(withJson));
 });
 
-const ENQ_TYPES = ['general', 'test_ride', 'price', 'finance', 'exchange', 'service', 'contact'];
-app.post('/api/enquiries', enqLimit, (req, res) => {
-  const b = req.body;
-  if (b.website) return res.json({ ok: true }); // honeypot: bots fill this hidden field
-  const name = str(b.name, 80), phone = normPhone(b.phone), message = str(b.message, 1000);
-  const type = ENQ_TYPES.includes(b.type) ? b.type : null;
-  if (name.length < 2) return bad(res, 'Please enter your name.');
-  if (!phone) return bad(res, 'Please enter a valid 10-digit mobile number.');
-  if (!type) return bad(res, 'Please choose a request type.');
-  if (type === 'contact' && message.length < 3) return bad(res, 'Please write your message.');
-  let productId = null;
-  if (b.product_id) {
-    productId = Number(b.product_id);
-    if (!db.prepare('SELECT 1 FROM products WHERE id=?').get(productId)) productId = null;
-  }
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(b.preferred_date || '') ? b.preferred_date : null;
-  const id = Number(db.prepare(`INSERT INTO enquiries (user_id,name,phone,type,product_id,preferred_date,message)
-                                VALUES (?,?,?,?,?,?,?)`)
-    .run(req.user ? req.user.id : null, name, phone, type, productId, date, message || null).lastInsertRowid);
-  notify.sendEnquiryEmail({ name, phone, type, message, preferred_date: date,
-    bike: productId ? db.prepare('SELECT name FROM products WHERE id=?').get(productId).name : '' });
-  res.json({ ok: true, id });
-});
-
-/* ---------- customer dashboard ---------- */
-app.get('/api/my/enquiries', A.requireAuth, (req, res) => {
-  res.json(db.prepare(`SELECT e.id,e.type,e.status,e.message,e.preferred_date,e.created_at,e.product_id,p.name AS product_name
-                       FROM enquiries e LEFT JOIN products p ON p.id=e.product_id
-                       WHERE e.user_id=? ORDER BY e.id DESC LIMIT 200`).all(req.user.id));
-});
-app.post('/api/my/enquiries/:id/cancel', A.requireAuth, (req, res) => {
-  const r = db.prepare(`UPDATE enquiries SET status='cancelled', updated_at=datetime('now')
-                        WHERE id=? AND user_id=? AND status='new'`).run(Number(req.params.id), req.user.id);
-  if (!r.changes) return bad(res, 'This request can no longer be cancelled.', 409);
-  res.json({ ok: true });
-});
-app.get('/api/my/wishlist', A.requireAuth, (req, res) => {
-  res.json(db.prepare('SELECT product_id FROM wishlist WHERE user_id=?').all(req.user.id).map((r) => r.product_id));
-});
-app.post('/api/my/wishlist/:pid', A.requireAuth, (req, res) => {
-  const pid = Number(req.params.pid);
-  if (!db.prepare('SELECT 1 FROM products WHERE id=? AND active=1').get(pid)) return bad(res, 'Bike not found.', 404);
-  db.prepare('INSERT OR IGNORE INTO wishlist (user_id,product_id) VALUES (?,?)').run(req.user.id, pid);
-  res.json({ ok: true });
-});
-app.delete('/api/my/wishlist/:pid', A.requireAuth, (req, res) => {
-  db.prepare('DELETE FROM wishlist WHERE user_id=? AND product_id=?').run(req.user.id, Number(req.params.pid));
-  res.json({ ok: true });
-});
-
 /* ---------- admin ---------- */
 const admin = express.Router();
 admin.use(A.requireAdmin);
-
-admin.get('/stats', (req, res) => {
-  const n = (sql) => db.prepare(sql).get().n;
-  const ist = "date(created_at,'+5 hours','+30 minutes')=date('now','+5 hours','+30 minutes')";
-  res.json({
-    products: n('SELECT COUNT(*) n FROM products'),
-    activeProducts: n('SELECT COUNT(*) n FROM products WHERE active=1'),
-    customers: n("SELECT COUNT(*) n FROM users WHERE role='user'"),
-    enquiries: n('SELECT COUNT(*) n FROM enquiries'),
-    newEnquiries: n("SELECT COUNT(*) n FROM enquiries WHERE status='new'"),
-    today: n(`SELECT COUNT(*) n FROM enquiries WHERE ${ist}`),
-    testRides: n("SELECT COUNT(*) n FROM enquiries WHERE type='test_ride' AND status IN ('new','contacted')"),
-    recent: db.prepare(`SELECT e.id,e.name,e.phone,e.type,e.status,e.created_at,p.name AS product_name
-                        FROM enquiries e LEFT JOIN products p ON p.id=e.product_id ORDER BY e.id DESC LIMIT 8`).all(),
-  });
-});
 
 // products
 const SPEC_KEYS = ['engine', 'power', 'torque', 'mileage', 'tank', 'weight', 'gearbox', 'brakes', 'suspension', 'tyres', 'dimensions', 'wheelbase', 'seat', 'clearance'];
@@ -252,45 +159,6 @@ admin.delete('/products/:id', (req, res) => {
   db.prepare('DELETE FROM products WHERE id=?').run(Number(req.params.id));
   res.json({ ok: true });
 });
-
-// enquiries
-const STATUSES = ['new', 'contacted', 'done', 'cancelled'];
-admin.get('/enquiries', (req, res) => {
-  const w = [], p = [];
-  if (STATUSES.includes(req.query.status)) { w.push('e.status=?'); p.push(req.query.status); }
-  if (ENQ_TYPES.includes(req.query.type)) { w.push('e.type=?'); p.push(req.query.type); }
-  const q = str(req.query.q, 60);
-  if (q) { w.push("(e.name LIKE ? ESCAPE '\\' OR e.phone LIKE ? ESCAPE '\\' OR e.message LIKE ? ESCAPE '\\')");
-           const like = '%' + q.replace(/[\\%_]/g, '\\$&') + '%'; p.push(like, like, like); }
-  res.json(db.prepare(`SELECT e.*, p.name AS product_name, (e.user_id IS NOT NULL) AS registered
-                       FROM enquiries e LEFT JOIN products p ON p.id=e.product_id
-                       ${w.length ? 'WHERE ' + w.join(' AND ') : ''} ORDER BY e.id DESC LIMIT 500`).all(...p));
-});
-admin.patch('/enquiries/:id', (req, res) => {
-  const cur = db.prepare('SELECT status,admin_note FROM enquiries WHERE id=?').get(Number(req.params.id));
-  if (!cur) return bad(res, 'Not found.', 404);
-  const status = STATUSES.includes(req.body.status) ? req.body.status : cur.status;
-  const note = req.body.admin_note === undefined ? cur.admin_note : str(req.body.admin_note, 1000);
-  db.prepare("UPDATE enquiries SET status=?, admin_note=?, updated_at=datetime('now') WHERE id=?").run(status, note, Number(req.params.id));
-  res.json({ ok: true });
-});
-admin.delete('/enquiries/:id', (req, res) => {
-  db.prepare('DELETE FROM enquiries WHERE id=?').run(Number(req.params.id));
-  res.json({ ok: true });
-});
-
-// customers
-admin.get('/users', (req, res) => {
-  res.json(db.prepare(`SELECT u.id,u.name,u.phone,u.email,u.role,u.created_at,
-                       (SELECT COUNT(*) FROM enquiries e WHERE e.user_id=u.id) AS enquiries
-                       FROM users u ORDER BY u.id DESC LIMIT 500`).all());
-});
-admin.delete('/users/:id', (req, res) => {
-  const id = Number(req.params.id);
-  if (id === req.user.id) return bad(res, "You can't delete your own account.");
-  db.prepare('DELETE FROM users WHERE id=?').run(id);
-  res.json({ ok: true });
-});
 app.use('/api/admin', admin);
 
 app.use('/api', (req, res) => bad(res, 'Not found.', 404));
@@ -323,7 +191,4 @@ function ensureAdmin() {
 }
 ensureAdmin();
 
-app.listen(PORT, () => {
-  console.log(`Divya Shakti Motors running at http://localhost:${PORT}`);
-  console.log(notify.configured() ? `Enquiry emails: on (to ${process.env.NOTIFY_TO})` : 'Enquiry emails: off (set NOTIFY_TO, SMTP_USER, SMTP_PASS in .env to turn on)');
-});
+app.listen(PORT, () => console.log(`Divya Shakti Motors running at http://localhost:${PORT}`));

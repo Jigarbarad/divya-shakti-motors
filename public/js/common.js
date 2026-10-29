@@ -10,7 +10,7 @@
   try { const s = localStorage.getItem('dsm_lang'); if (s === 'gu' || s === 'en') lang = s; } catch (e) {}
   const langListeners = [];
 
-  const App = { SHOP, user: null, products: null, wish: new Set() };
+  const App = { SHOP, user: null, products: null };
   App.$ = (s, r = document) => r.querySelector(s);
   App.$$ = (s, r = document) => [...r.querySelectorAll(s)];
   App.esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -115,11 +115,7 @@
   /* ---------- header / footer / mobile bar ---------- */
   let activePage = '';
   function chrome() {
-    const t = App.t, u = App.user;
-    const PERSON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg>';
-    const acct = u
-      ? `<a class="btn btn-red acct" href="${u.role === 'admin' ? '/admin.html' : '/dashboard.html'}" aria-label="${u.role === 'admin' ? t('admin') : t('account')}">${PERSON}<span>${u.role === 'admin' ? t('admin') : t('account')}</span></a>`
-      : `<a class="btn btn-red acct" href="/login.html" aria-label="${t('login')}">${PERSON}<span>${t('login')}</span></a>`;
+    const t = App.t;
     const link = (id, href, k) => `<li><a href="${href}" data-nav="${id}" class="${activePage === id ? 'on' : ''}">${t(k)}</a></li>`;
     App.$('#hdr').innerHTML = `<div class="wrap nav">
       <a href="/" class="logo">DIVYA <span>SHAKTI</span> MOTORS</a>
@@ -130,19 +126,20 @@
       </ul></nav>
       <div class="nav-right">
         <button class="lang" id="langBtn" aria-label="Language / ભાષા"><span data-l="en" class="${lang === 'en' ? 'on' : ''}">EN</span><span data-l="gu" class="${lang === 'gu' ? 'on' : ''}">ગુજ</span></button>
-        ${acct}
         <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
       </div></div>`;
     App.$('#ftr').innerHTML = `<div class="wrap row">
       <div><b style="color:#fff">Divya Shakti Motors</b><br>${t('foot_addr')}</div>
       <div>${t('foot_hours')}<br><a href="tel:+${SHOP.phone}">${SHOP.phoneDisplay}</a></div>
-      <div>© ${new Date().getFullYear()} Divya Shakti Motors</div></div>`;
+      <div><span id="copy">© ${new Date().getFullYear()} Divya Shakti Motors</span></div></div>`;
     App.$('#mbar').innerHTML = `<a href="tel:+${SHOP.phone}" style="background:var(--red)">${t('m_call')}</a>
       <a href="https://wa.me/${SHOP.phone}" target="_blank" rel="noopener" style="background:#1fa855">WhatsApp</a>
       <a href="${SHOP.dir}" target="_blank" rel="noopener" style="background:var(--ink)">${t('directions')}</a>`;
     const nav = App.$('#nav');
     App.$('#menuBtn').onclick = () => nav.classList.toggle('nav-open');
     nav.onclick = (e) => { if (e.target.tagName === 'A') nav.classList.remove('nav-open'); };
+    // Owner's way in: tap the © line 4 times quickly
+    { let n = 0, tm; App.$('#copy').onclick = () => { n++; clearTimeout(tm); tm = setTimeout(() => { n = 0; }, 1500); if (n >= 4) { n = 0; location.href = App.user && App.user.role === 'admin' ? '/admin.html' : '/login.html'; } }; }
     nav.addEventListener('mouseover', (e) => { const l = e.target.closest('a[data-nav]'); if (l) App.navInd(l); });
     nav.addEventListener('focusin', (e) => { const l = e.target.closest('a[data-nav]'); if (l) App.navInd(l); });
     nav.addEventListener('mouseleave', () => App.navInd());
@@ -186,7 +183,7 @@
     chrome(); App.applyI18n(); langListeners.forEach((fn) => fn());
   };
 
-  /* ---------- products, wishlist ---------- */
+  /* ---------- products ---------- */
   App.loadProducts = async () => (App.products ||= await App.api('/products'));
   App.pname = (id) => (App.products || []).find((p) => p.id === Number(id))?.name || '';
 
@@ -204,93 +201,11 @@
 
   App.card = (p) => {
     const t = App.t, esc = App.esc, tag = p['tagline_' + lang] || p.tagline_en || '';
-    return `<article class="card"><div class="pimg">${App.imgHtml(p)}
-      <button class="heart ${App.wish.has(p.id) ? 'on' : ''}" data-wish="${p.id}" aria-label="Save">♥</button></div>
+    return `<article class="card"><div class="pimg">${App.imgHtml(p)}</div>
       <div class="body"><span class="cat">${t(p.category)}</span><h3>${esc(p.name)}</h3><p>${esc(tag)}</p>
       <div class="price">${App.price(p)}</div>
       <a class="btn btn-red" href="/bike.html?id=${p.id}">${t('explore')}</a>
       <label class="cmp"><input type="checkbox" data-cmp="${p.id}" ${App.cmp.includes(p.id) ? 'checked' : ''}> ${t('compare')}</label></div></article>`;
-  };
-
-  // Click handling for product grids: heart toggles, button opens the detail modal
-  App.bindCards = (container) => container.addEventListener('click', async (e) => {
-    const w = e.target.closest('[data-wish]');
-    if (w) {
-      if (!App.user) { location.href = '/login.html?next=' + encodeURIComponent(location.pathname); return; }
-      const id = Number(w.dataset.wish), on = App.wish.has(id);
-      try {
-        await App.api('/my/wishlist/' + id, { method: on ? 'DELETE' : 'POST' });
-        on ? App.wish.delete(id) : App.wish.add(id);
-        w.classList.toggle('on', !on);
-      } catch (err) { App.toast(err.message, true); }
-    }
-  });
-
-  App.productModal = (id) => {
-    const p = (App.products || []).find((x) => x.id === id); if (!p) return;
-    const esc = App.esc, t = App.t;
-    const desc = p['desc_' + lang] || p.desc_en || '';
-    const m = App.modal(`<h2>${esc(p.name)}</h2><span class="cat" style="margin-top:6px">${t(p.category)}</span>
-      <div class="pimg">${App.imgHtml(p)}</div>
-      <p class="muted">${esc(desc)}</p>
-      ${p.engine ? `<p style="margin-top:8px"><b>Engine:</b> ${esc(p.engine)}</p>` : ''}
-      <div class="price" style="font-size:1.2rem">${App.price(p)}</div>
-      <div id="mform"></div>`);
-    App.enquiryForm(App.$('#mform', m.el), { productId: p.id });
-  };
-
-  /* ---------- enquiry form (used on home, bikes, contact) ---------- */
-  App.enquiryForm = async (host, opt = {}) => {
-    const types = opt.types || ['general', 'test_ride', 'price', 'finance', 'exchange', 'service'];
-    const fixed = types.length === 1 ? types[0] : null, contact = fixed === 'contact';
-    const today = new Date().toISOString().slice(0, 10);
-    await App.loadProducts().catch(() => {});
-    const bikeOpts = (App.products || []).map((p) => `<option value="${p.id}" ${p.id === opt.productId ? 'selected' : ''}>${App.esc(p.name)}</option>`).join('');
-    const u = App.user;
-    const build = () => {
-      host.innerHTML = `<form novalidate>
-        <div class="err" hidden></div>
-        <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <label class="f"><span data-i18n="f_name"></span><input name="name" maxlength="80" autocomplete="name" required value="${App.esc(u ? u.name : '')}"></label>
-        <label class="f"><span data-i18n="f_phone"></span><input name="phone" type="tel" inputmode="numeric" maxlength="15" autocomplete="tel" required value="${App.esc(u ? u.phone : '')}"></label>
-        ${fixed ? '' : `<label class="f"><span data-i18n="f_type"></span><select name="type">${types.map((x) => `<option value="${x}" data-i18n="ty_${x}"></option>`).join('')}</select></label>`}
-        ${contact ? '' : `<label class="f"><span data-i18n="ph_bike"></span><select name="product_id"><option value=""></option>${bikeOpts}</select></label>
-        <label class="f" data-datebox><span data-i18n="f_date"></span><input name="preferred_date" type="date" min="${today}"></label>`}
-        <label class="f"><span data-i18n="${contact ? 'f_msg' : 'f_msg_opt'}"></span><textarea name="message" rows="${contact ? 5 : 3}" maxlength="1000" ${contact ? 'required' : ''}></textarea></label>
-        <button class="btn btn-wa" type="submit" data-i18n="f_send"></button></form>`;
-      App.applyI18n(host);
-      const form = App.$('form', host), typeSel = form.elements.type, dbox = App.$('[data-datebox]', form);
-      const syncDate = () => { if (dbox) dbox.hidden = !['test_ride', 'service'].includes(fixed || typeSel.value); };
-      if (typeSel) typeSel.addEventListener('change', syncDate);
-      if (opt.defaultType && typeSel) typeSel.value = opt.defaultType;
-      syncDate();
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const err = App.$('.err', form), btn = App.$('button[type=submit]', form);
-        err.hidden = true; btn.disabled = true; btn.textContent = App.t('sending');
-        const f = Object.fromEntries(new FormData(form));
-        const body = { ...f, type: fixed || f.type, product_id: f.product_id || undefined };
-        try {
-          await App.api('/enquiries', { method: 'POST', body });
-          done(body);
-        } catch (ex) {
-          err.textContent = ex.message; err.hidden = false;
-          btn.disabled = false; btn.textContent = App.t('f_send');
-        }
-      });
-    };
-    const done = (b) => {
-      const label = App.t('ty_' + b.type);
-      const bike = b.product_id ? App.pname(b.product_id) : '';
-      const wa = `Hello Divya Shakti Motors, I'm ${b.name}. ${dict.en['ty_' + b.type]}${bike ? ' - ' + bike : ''}. ${b.message || ''}`.trim();
-      host.innerHTML = `<div class="okbox"><h3 data-i18n="ok_title"></h3><p data-i18n="ok_sub"></p>
-        <div class="cta"><a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/${SHOP.phone}?text=${encodeURIComponent(wa)}" data-i18n="ok_wa"></a>
-        ${App.user ? '<a class="btn btn-line" href="/dashboard.html" data-i18n="ok_track"></a>' : ''}
-        <button class="btn btn-line" type="button" id="again" data-i18n="ok_another"></button></div></div>`;
-      App.applyI18n(host); void label;
-      App.$('#again', host).onclick = build;
-    };
-    build();
   };
 
   /* ---------- opening hours (home + contact) ---------- */
@@ -397,7 +312,6 @@
   App.init = async (page, onReady) => {
     activePage = page; document.documentElement.lang = lang;
     try { App.user = (await App.api('/me')).user; } catch (e) {}
-    if (App.user) { try { App.wish = new Set(await App.api('/my/wishlist')); } catch (e) {} }
     chrome(); App.applyI18n();
     if (page !== 'admin') initRider();
     initTray(page);

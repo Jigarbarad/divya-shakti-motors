@@ -1,81 +1,7 @@
 /* Admin panel (English only). All data comes from /api/admin/*, which the server restricts to the admin role. */
 const A = App, esc = A.esc, $ = A.$;
-const TYPES = { general: 'General enquiry', test_ride: 'Test ride', price: 'Price / offers', finance: 'Finance / EMI', exchange: 'Exchange', service: 'Service', contact: 'Message' };
-const STATUS = { new: 'New', contacted: 'Contacted', done: 'Completed', cancelled: 'Cancelled' };
-const pill = (s) => `<span class="pill p-${s}">${STATUS[s]}</span>`;
-const opts = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
 const view = () => $('#view');
-const when = (s) => A.fmtDate(s);
-const waLink = (phone, name) => `https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + name + ', this is Divya Shakti Motors regarding your enquiry.')}`;
-let tab = 'dash';
-
-/* ---------- Dashboard ---------- */
-async function dash() {
-  const s = await A.api('/admin/stats');
-  $('#newCount').hidden = !s.newEnquiries; $('#newCount').textContent = s.newEnquiries;
-  view().innerHTML = `<div class="stat-grid">
-    <div class="sc ${s.newEnquiries ? 'hot' : ''}"><b>${s.newEnquiries}</b><small>New enquiries</small></div>
-    <div class="sc"><b>${s.today}</b><small>Received today</small></div>
-    <div class="sc"><b>${s.testRides}</b><small>Open test rides</small></div>
-    <div class="sc"><b>${s.enquiries}</b><small>Total enquiries</small></div>
-    <div class="sc"><b>${s.activeProducts}<small> / ${s.products}</small></b><small>Bikes live on site</small></div>
-    <div class="sc"><b>${s.customers}</b><small>Registered customers</small></div></div>
-    <h3 style="margin-bottom:12px">Latest enquiries</h3>
-    ${s.recent.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>When</th><th>Name</th><th>Phone</th><th>Request</th><th>Bike</th><th>Status</th></tr></thead><tbody>` +
-      s.recent.map((r) => `<tr><td>${esc(when(r.created_at))}</td><td>${esc(r.name)}</td><td><a href="tel:+91${r.phone}">${r.phone}</a></td>
-        <td>${TYPES[r.type]}</td><td>${esc(r.product_name || '—')}</td><td>${pill(r.status)}</td></tr>`).join('') + '</tbody></table></div>'
-      : '<p class="empty">No enquiries yet. They will appear here as soon as customers send them.</p>'}`;
-}
-
-/* ---------- Enquiries ---------- */
-let eq = { status: '', type: '', q: '' };
-async function enquiries() {
-  view().innerHTML = `<div class="bar">
-    <select id="fs"><option value="">All statuses</option>${opts(STATUS, eq.status)}</select>
-    <select id="ft"><option value="">All types</option>${opts(TYPES, eq.type)}</select>
-    <input id="fq" class="grow" type="search" placeholder="Search name, phone, message…" value="${esc(eq.q)}"></div>
-    <div id="elist"></div>`;
-  const load = async () => {
-    const qs = new URLSearchParams(Object.entries(eq).filter(([, v]) => v)).toString();
-    const rows = await A.api('/admin/enquiries' + (qs ? '?' + qs : ''));
-    $('#elist').innerHTML = rows.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>#</th><th>When</th><th>Customer</th><th>Request</th><th>Bike</th><th>Status</th><th></th></tr></thead><tbody>` +
-      rows.map((r) => `<tr><td>${r.id}</td><td>${esc(when(r.created_at))}</td>
-        <td><b>${esc(r.name)}</b>${r.registered ? ' <small class="muted">(account)</small>' : ''}<br><a href="tel:+91${r.phone}">${r.phone}</a> · <a href="${waLink(r.phone, r.name)}" target="_blank" rel="noopener">WhatsApp</a></td>
-        <td>${TYPES[r.type]}${r.preferred_date ? `<br><small class="muted">Date: ${esc(r.preferred_date)}</small>` : ''}${r.message ? `<br><small class="muted" title="${esc(r.message)}">${esc(r.message.slice(0, 70))}${r.message.length > 70 ? '…' : ''}</small>` : ''}</td>
-        <td>${esc(r.product_name || '—')}</td>
-        <td><select data-st="${r.id}">${opts(STATUS, r.status)}</select></td>
-        <td><button class="btn btn-line btn-sm" data-note="${r.id}">${r.admin_note ? 'Note ✎' : 'Note'}</button></td></tr>`).join('') + '</tbody></table></div>'
-      : '<p class="empty">No enquiries match.</p>';
-    $('#elist').onchange = async (e) => {
-      const s = e.target.dataset.st; if (!s) return;
-      try { await A.api('/admin/enquiries/' + s, { method: 'PATCH', body: { status: e.target.value } }); A.toast('Status updated'); refreshBadge(); }
-      catch (ex) { A.toast(ex.message, true); }
-    };
-    $('#elist').onclick = (e) => {
-      const b = e.target.closest('[data-note]'); if (!b) return;
-      const r = rows.find((x) => x.id === Number(b.dataset.note));
-      const m = A.modal(`<h2>Enquiry #${r.id}</h2><p class="muted">${esc(when(r.created_at))} · ${TYPES[r.type]}${r.product_name ? ' · ' + esc(r.product_name) : ''}</p>
-        <p style="margin:10px 0"><b>${esc(r.name)}</b> · <a href="tel:+91${r.phone}">${r.phone}</a></p>
-        ${r.message ? `<p style="background:var(--soft);padding:12px;border-radius:10px;white-space:pre-wrap">${esc(r.message)}</p>` : ''}
-        <form id="nf" style="margin-top:14px"><label class="f"><span>Private note (only you can see this)</span><textarea name="admin_note" rows="3" maxlength="1000">${esc(r.admin_note || '')}</textarea></label>
-        <div class="cta"><button class="btn btn-red btn-sm" type="submit">Save note</button>
-        <button class="btn btn-danger btn-sm" type="button" id="del">Delete enquiry</button></div></form>`);
-      $('#nf', m.el).onsubmit = async (ev) => {
-        ev.preventDefault();
-        try { await A.api('/admin/enquiries/' + r.id, { method: 'PATCH', body: { admin_note: ev.target.admin_note.value } }); m.close(); A.toast('Saved'); load(); }
-        catch (ex) { A.toast(ex.message, true); }
-      };
-      $('#del', m.el).onclick = async () => {
-        if (!confirm('Delete this enquiry permanently?')) return;
-        try { await A.api('/admin/enquiries/' + r.id, { method: 'DELETE' }); m.close(); load(); refreshBadge(); } catch (ex) { A.toast(ex.message, true); }
-      };
-    };
-  };
-  $('#fs').onchange = (e) => { eq.status = e.target.value; load(); };
-  $('#ft').onchange = (e) => { eq.type = e.target.value; load(); };
-  let tm; $('#fq').oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { eq.q = e.target.value.trim(); load(); }, 300); };
-  await load();
-}
+let tab = 'prod';
 
 /* ---------- Products ---------- */
 async function products() {
@@ -93,7 +19,7 @@ async function products() {
   view().onclick = async (e) => {
     const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
     if (ed) productForm(list.find((p) => p.id === Number(ed.dataset.edit)), products);
-    if (del && confirm('Delete this bike? Its saved-bike and enquiry links will be cleared.')) {
+    if (del && confirm('Delete this bike? This cannot be undone.')) {
       try { await A.api('/admin/products/' + del.dataset.del, { method: 'DELETE' }); A.products = null; products(); } catch (ex) { A.toast(ex.message, true); }
     }
   };
@@ -164,21 +90,6 @@ function productForm(p, done) {
   };
 }
 
-/* ---------- Customers ---------- */
-async function users() {
-  const list = await A.api('/admin/users');
-  view().innerHTML = `<div class="tablewrap"><table class="t"><thead><tr><th>Name</th><th>Mobile</th><th>Email</th><th>Role</th><th>Requests</th><th>Joined</th><th></th></tr></thead><tbody>` +
-    list.map((u) => `<tr><td><b>${esc(u.name)}</b></td><td><a href="tel:+91${u.phone}">${u.phone}</a></td><td>${esc(u.email || '—')}</td>
-      <td>${u.role}</td><td>${u.enquiries}</td><td>${esc(when(u.created_at))}</td>
-      <td>${u.id === A.user.id ? '' : `<button class="btn btn-danger btn-sm" data-u="${u.id}">Delete</button>`}</td></tr>`).join('') + '</tbody></table></div>';
-  view().onclick = async (e) => {
-    const b = e.target.closest('[data-u]');
-    if (b && confirm('Delete this customer account? Their enquiries are kept.')) {
-      try { await A.api('/admin/users/' + b.dataset.u, { method: 'DELETE' }); users(); } catch (ex) { A.toast(ex.message, true); }
-    }
-  };
-}
-
 /* ---------- Account ---------- */
 function account() {
   view().innerHTML = `<div class="formcard" style="max-width:440px"><h3 style="margin-bottom:14px">Change your password</h3>
@@ -193,24 +104,20 @@ function account() {
   };
 }
 
-async function refreshBadge() {
-  try { const s = await A.api('/admin/stats'); $('#newCount').hidden = !s.newEnquiries; $('#newCount').textContent = s.newEnquiries; } catch (e) {}
-}
-
 async function show() {
   view().onclick = null; view().innerHTML = '<p class="empty">Loading…</p>';
-  try { await ({ dash, enq: enquiries, prod: products, users, acct: async () => account() }[tab])(); }
+  try { await ({ prod: products, acct: async () => account() }[tab])(); }
   catch (ex) { view().innerHTML = `<p class="empty">${esc(ex.message)}</p>`; }
 }
 
 A.init('admin', async () => {
   if (!A.user) { location.href = '/login.html?next=/admin.html'; return; }
-  if (A.user.role !== 'admin') { location.href = '/dashboard.html'; return; }
+  if (A.user.role !== 'admin') { location.href = '/login.html'; return; }
   $('#who').textContent = 'Signed in as ' + A.user.name + ' (+91 ' + A.user.phone + ')';
   $('#tabs').addEventListener('click', (e) => {
     const b = e.target.closest('.tab'); if (!b) return;
     A.$$('#tabs .tab').forEach((x) => x.classList.toggle('on', x === b)); tab = b.dataset.tab; show();
   });
   $('#logout').onclick = async () => { await A.api('/auth/logout', { method: 'POST' }); location.href = '/'; };
-  refreshBadge(); show();
+  show();
 });

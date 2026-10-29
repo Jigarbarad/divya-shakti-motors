@@ -59,7 +59,6 @@ App.init('home', async () => {
     const f = all.filter((p) => p.featured);
     featured = (f.length ? f : all).slice(0, 4);
   } catch (e) { /* grid just stays empty */ }
-  App.bindCards(App.$('#bikeGrid'));
   renderBikes();
   App.onLang(renderBikes);
 });

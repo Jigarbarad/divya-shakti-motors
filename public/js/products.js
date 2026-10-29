@@ -17,7 +17,6 @@ function render() {
 
 App.init('bikes', async () => {
   try { await App.loadProducts(); } catch (e) { App.toast(e.message, true); }
-  App.bindCards(App.$('#grid'));
   App.$('#chips').addEventListener('click', (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
     App.$$('#chips .chip').forEach((x) => x.classList.toggle('on', x === c));
